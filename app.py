@@ -1,4 +1,4 @@
-# Streamlit 대쉬보드 (드랍다운 자동입력 + 카드형 UI)
+# Streamlit 대쉬보드 (검색 결과 없음 방지 + 드랍다운 자동 이동)
 
 import streamlit as st
 import pandas as pd
@@ -68,7 +68,7 @@ if 'user_input' not in st.session_state:
 def update_input():
     st.session_state['user_input'] = st.session_state['temp_input']
 
-# --- 입력창 + 드랍다운 검색 통합 ---
+# --- 입력창 ---
 st.text_input(
     "초등학교 교재명을 검색하세요",
     key='temp_input',
@@ -78,24 +78,25 @@ st.text_input(
 # 교재명 리스트
 title_list = df['교재명'].dropna().tolist()
 
-# 추천 드랍다운 (필터링)
-filtered_suggestions = [title for title in title_list if st.session_state['user_input'].lower() in title.lower()]
-
-if filtered_suggestions:
-    selected_title = st.selectbox("🔎 검색 결과", filtered_suggestions)
-    if selected_title:
-        st.session_state['user_input'] = selected_title
-
-# --- 검색 결과 필터링 ---
+# 추천 드랍다운 (입력값 있을 때만)
 user_input = st.session_state['user_input']
 
 if user_input:
+    filtered_suggestions = [title for title in title_list if user_input.lower() in title.lower()]
+    if filtered_suggestions:
+        selected_title = st.selectbox("🔎 검색 결과", filtered_suggestions)
+        if selected_title and selected_title != user_input:
+            st.session_state['user_input'] = selected_title
+            st.experimental_rerun()
+
+# --- 검색 결과 필터링 ---
+if user_input:
     results = df[df['교재명'].str.contains(user_input, case=False, na=False)]
 else:
-    results = df
+    results = pd.DataFrame()  # 아무것도 입력 안 하면 빈 결과
 
 # --- 결과 출력 ---
-if not results.empty:
+if not results.empty and user_input:
     for idx, row in results.iterrows():
         with st.container():
             st.markdown("---")
@@ -121,5 +122,6 @@ if not results.empty:
             st.write(row.get('추가예시', ''))
             
             st.markdown(" ")
-else:
+elif user_input:
     st.info("검색 결과가 없습니다. 다른 키워드를 입력해 주세요.")
+# (🔥 아무 입력도 없을 때는 '검색 결과 없음' 메시지 출력 안함)
