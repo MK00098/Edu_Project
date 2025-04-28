@@ -1,4 +1,4 @@
-# Streamlit 대쉬보드 (카테고리 레벨 업 반영)
+# Streamlit 대쉬보드 (드랍다운 자동입력 + 카드형 UI)
 
 import streamlit as st
 import pandas as pd
@@ -58,7 +58,8 @@ df = df.rename(columns={
 df['추가예시'] = ''
 
 # --- Streamlit UI 시작 ---
-st.markdown("<h2>📚 초등 AI 교재 인사이트</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align:center;'>📚 초등 AI 교재 인사이트</h2>", unsafe_allow_html=True)
+st.markdown("---")
 
 # 세션 상태로 입력값 관리
 if 'user_input' not in st.session_state:
@@ -67,7 +68,7 @@ if 'user_input' not in st.session_state:
 def update_input():
     st.session_state['user_input'] = st.session_state['temp_input']
 
-# 입력창
+# --- 입력창 + 드랍다운 검색 통합 ---
 st.text_input(
     "초등학교 교재명을 검색하세요",
     key='temp_input',
@@ -77,46 +78,48 @@ st.text_input(
 # 교재명 리스트
 title_list = df['교재명'].dropna().tolist()
 
-selected_title = None
+# 추천 드랍다운 (필터링)
+filtered_suggestions = [title for title in title_list if st.session_state['user_input'].lower() in title.lower()]
+
+if filtered_suggestions:
+    selected_title = st.selectbox("🔎 검색 결과", filtered_suggestions)
+    if selected_title:
+        st.session_state['user_input'] = selected_title
+
+# --- 검색 결과 필터링 ---
 user_input = st.session_state['user_input']
 
 if user_input:
-    # 추천 검색어 리스트
-    suggestions = [title for title in title_list if user_input.lower() in title.lower()]
-    
-    for suggestion in suggestions:
-        if st.button(suggestion):
-            selected_title = suggestion
-            break
-
-# 최종 검색 결과
-if selected_title:
-    results = df[df['교재명'] == selected_title]
+    results = df[df['교재명'].str.contains(user_input, case=False, na=False)]
 else:
-    results = df[df['교재명'].str.contains(user_input, case=False, na=False)] if user_input else df
+    results = df
 
-# 결과 출력
+# --- 결과 출력 ---
 if not results.empty:
     for idx, row in results.iterrows():
-        st.markdown("---")
-        st.markdown(f"<h3>📖 {row.get('교재명', '')}</h3>", unsafe_allow_html=True)
+        with st.container():
+            st.markdown("---")
+            st.markdown(f"<h3 style='color:#4CAF50;'>📖 {row.get('교재명', '')}</h3>", unsafe_allow_html=True)
+            
+            st.markdown(" ")
+            st.markdown("<h4>📁 카테고리</h4>", unsafe_allow_html=True)
+            st.write(row.get('카테고리', ''))
 
-        st.markdown("<h4>🗂️ 카테고리</h4>", unsafe_allow_html=True)
-        st.write(row.get('카테고리', ''))
+            st.markdown("<h4>🧠 난이도</h4>", unsafe_allow_html=True)
+            st.success(row.get('난이도', ''))
 
-        st.markdown("<h4>🧠 난이도</h4>", unsafe_allow_html=True)
-        st.success(row.get('난이도', ''))
+            st.markdown("<h4>📚 에듀넷 키워드</h4>", unsafe_allow_html=True)
+            st.write(row.get('에듀넷 키워드', ''))
 
-        st.markdown("<h4>📚 에듀넷 키워드</h4>", unsafe_allow_html=True)
-        st.write(row.get('에듀넷 키워드', ''))
+            st.markdown("<h4>🏫 주요 키워드</h4>", unsafe_allow_html=True)
+            st.write(row.get('주요 키워드', ''))
 
-        st.markdown("<h4>🏫 주요 키워드</h4>", unsafe_allow_html=True)
-        st.write(row.get('주요 키워드', ''))
+            st.markdown("<h4>💡 교수 전략</h4>", unsafe_allow_html=True)
+            st.info(row.get('교수 전략', ''))
 
-        st.markdown("<h4>💡 교수 전략</h4>", unsafe_allow_html=True)
-        st.info(row.get('교수 전략', ''))
-
-        st.markdown("<h4>🧩 추가 예시</h4>", unsafe_allow_html=True)
-        st.write(row.get('추가예시', ''))
+            st.markdown("<h4>🧩 추가 예시</h4>", unsafe_allow_html=True)
+            st.write(row.get('추가예시', ''))
+            
+            st.markdown(" ")
 else:
     st.info("검색 결과가 없습니다. 다른 키워드를 입력해 주세요.")
