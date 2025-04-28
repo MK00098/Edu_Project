@@ -43,15 +43,29 @@ df = df.rename(columns={
 
 df['추가예시'] = ''
 
-# --- Streamlit UI 시작 ---
-st.markdown("<h2>📚 초등 AI 교재 인사이트</h2>", unsafe_allow_html=True)
-
-# 세션 상태 초기화
+# --- 세션 상태 초기화 ---
 for key in ['selected_title', 'selected_level', 'selected_keyword', 'selected_category', 'user_input', 'history', 'forward_history']:
     if key not in st.session_state:
         st.session_state[key] = None if key in ['selected_title', 'selected_level', 'selected_keyword', 'selected_category'] else [] if key in ['history', 'forward_history'] else ''
 
-# --- 버튼 레이아웃 (홈 / 뒤로 / 앞으로) ---
+# --- Streamlit Custom CSS 추가 ---
+st.markdown("""
+    <style>
+    .button-container button {
+        margin: 5px;
+    }
+    .btn-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 제목 ---
+st.markdown("<h2>📚 초등 AI 교재 인사이트</h2>", unsafe_allow_html=True)
+
+# --- 홈/뒤로/앞으로 버튼 ---
 btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1])
 
 with btn_col1:
@@ -101,7 +115,7 @@ st.text_input(
     on_change=update_input
 )
 
-# 추천 검색어
+# --- 추천 검색어 ---
 title_list = df['교재명'].dropna().tolist()
 user_input = st.session_state['user_input']
 
@@ -122,7 +136,7 @@ if user_input and not (selected_title or selected_level or selected_keyword or s
             st.session_state['forward_history'] = []
             st.rerun()
 
-# --- 필터링
+# --- 필터링 ---
 if selected_title:
     results = df[df['교재명'] == selected_title]
 elif selected_category:
@@ -136,7 +150,7 @@ elif user_input:
 else:
     results = df.copy()
 
-# --- 결과 출력
+# --- 결과 출력 ---
 if not results.empty:
     for idx, row in results.iterrows():
         st.markdown("---")
@@ -178,10 +192,10 @@ if not results.empty:
         st.markdown("<h4>📚 에듀넷 키워드</h4>", unsafe_allow_html=True)
         st.write(row.get('에듀넷 키워드', ''))
 
-        # 주요 키워드 (위 2개 + 아래 3개 + 가로로 딱 붙게)
+        # 주요 키워드
         st.markdown("<h4>🏫 주요 키워드</h4>", unsafe_allow_html=True)
         keywords = str(row.get('주요 키워드', '')).split('/')
-
+        
         if keywords:
             # 위에 2개
             top_cols = st.columns(2, gap="small")
