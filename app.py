@@ -1,4 +1,4 @@
-# Streamlit 대쉬보드 (Streamlit Cloud용 Secrets 연동 최종 수정 버전)
+# Streamlit 대쉬보드 (모든 민감정보 Secrets에서 불러오는 버전)
 
 import streamlit as st
 import pandas as pd
@@ -6,8 +6,8 @@ import gspread
 from google.oauth2 import service_account
 import json
 
-# --- Secret 불러오기 ---
-SHEET_JSON_CONTENT = st.secrets["SHEET_JSON"]
+# --- Secret에서 불러오기 ---
+SHEET_JSON_CONTENT = json.dumps(st.secrets["gcp_service_account"])
 SPREADSHEET_ID = st.secrets["SPREADSHEET_ID"]
 WORKSHEET_NAME = st.secrets["WORKSHEET_NAME"]
 
@@ -17,7 +17,6 @@ scope = [
     "https://www.googleapis.com/auth/drive",
 ]
 
-# Service Account Credentials 생성
 credentials = service_account.Credentials.from_service_account_info(
     json.loads(SHEET_JSON_CONTENT),
     scopes=scope
@@ -52,7 +51,7 @@ df = df.rename(columns={
     '타이틀': '교재명',
     '카테고리': '카테고리',
     '난이도': '난이도',
-    '키워드': '에듀넷 키워드',   # 🔥 여기 변경
+    '키워드': '에듀넷 키워드',
     '주요 키워드': '주요 키워드',
     '교수 전략': '교수 전략'
 })
@@ -109,10 +108,10 @@ if not results.empty:
         st.subheader("🧠 난이도")
         st.success(row.get('난이도', ''))
 
-        st.subheader("📚 에듀넷 키워드")  # 🔥 여기 변경
+        st.subheader("📚 에듀넷 키워드")
         st.write(row.get('에듀넷 키워드', ''))
 
-        st.subheader("🏫 주요 키워드")  # 🔥 여기 변경
+        st.subheader("🏫 주요 키워드")
         st.write(row.get('주요 키워드', ''))
 
         st.subheader("💡 교수 전략")
