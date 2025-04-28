@@ -1,4 +1,4 @@
-# Streamlit 대쉬보드 (카테고리/난이도/키워드/타이틀 네비게이션 통합 버전)
+# Streamlit 대쉬보드 (홈, 뒤로가기, 최신 버전 대응 완료)
 
 import streamlit as st
 import pandas as pd
@@ -71,6 +71,25 @@ if 'selected_category' not in st.session_state:
     st.session_state['selected_category'] = None
 if 'user_input' not in st.session_state:
     st.session_state['user_input'] = ''
+if 'history' not in st.session_state:
+    st.session_state['history'] = []
+
+# 홈 버튼
+if st.button("🏠 홈으로"):
+    st.session_state['selected_title'] = None
+    st.session_state['selected_level'] = None
+    st.session_state['selected_keyword'] = None
+    st.session_state['selected_category'] = None
+    st.session_state['user_input'] = ''
+    st.session_state['history'] = []
+    st.rerun()
+
+# 뒤로가기 버튼
+if st.session_state['history']:
+    if st.button("🔙 뒤로가기"):
+        last_state = st.session_state['history'].pop()
+        st.session_state.update(last_state)
+        st.rerun()
 
 # 입력창
 def update_input():
@@ -79,6 +98,7 @@ def update_input():
     st.session_state['selected_level'] = None
     st.session_state['selected_keyword'] = None
     st.session_state['selected_category'] = None
+    st.session_state['history'] = []
 
 st.text_input(
     "초등학교 교재명을 검색하세요",
@@ -116,20 +136,34 @@ if not results.empty:
         # 카테고리
         st.markdown("<h4>📁 카테고리</h4>", unsafe_allow_html=True)
         if st.button(f"{row.get('카테고리', '')}", key=f"category_{idx}"):
+            st.session_state['history'].append({
+                'selected_title': st.session_state['selected_title'],
+                'selected_level': st.session_state['selected_level'],
+                'selected_keyword': st.session_state['selected_keyword'],
+                'selected_category': st.session_state['selected_category'],
+                'user_input': st.session_state['user_input']
+            })
             st.session_state['selected_category'] = row.get('카테고리')
             st.session_state['selected_title'] = None
             st.session_state['selected_level'] = None
             st.session_state['selected_keyword'] = None
-            st.experimental_rerun()
+            st.rerun()
 
         # 난이도
         st.markdown("<h4>🧠 난이도</h4>", unsafe_allow_html=True)
         if st.button(f"{row.get('난이도', '')}", key=f"level_{idx}"):
+            st.session_state['history'].append({
+                'selected_title': st.session_state['selected_title'],
+                'selected_level': st.session_state['selected_level'],
+                'selected_keyword': st.session_state['selected_keyword'],
+                'selected_category': st.session_state['selected_category'],
+                'user_input': st.session_state['user_input']
+            })
             st.session_state['selected_level'] = row.get('난이도')
             st.session_state['selected_title'] = None
             st.session_state['selected_keyword'] = None
             st.session_state['selected_category'] = None
-            st.experimental_rerun()
+            st.rerun()
 
         # 에듀넷 키워드
         st.markdown("<h4>📚 에듀넷 키워드</h4>", unsafe_allow_html=True)
@@ -141,11 +175,18 @@ if not results.empty:
         for keyword in keywords:
             if keyword.strip() != "":
                 if st.button(keyword.strip(), key=f"keyword_{idx}_{keyword}"):
+                    st.session_state['history'].append({
+                        'selected_title': st.session_state['selected_title'],
+                        'selected_level': st.session_state['selected_level'],
+                        'selected_keyword': st.session_state['selected_keyword'],
+                        'selected_category': st.session_state['selected_category'],
+                        'user_input': st.session_state['user_input']
+                    })
                     st.session_state['selected_keyword'] = keyword.strip()
                     st.session_state['selected_title'] = None
                     st.session_state['selected_level'] = None
                     st.session_state['selected_category'] = None
-                    st.experimental_rerun()
+                    st.rerun()
 
         # 교수 전략
         st.markdown("<h4>💡 교수 전략</h4>", unsafe_allow_html=True)
@@ -157,11 +198,18 @@ if not results.empty:
 
         # 교재명 다시 버튼으로
         if st.button(f"👉 {row.get('교재명', '')} 상세보기", key=f"title_{idx}"):
+            st.session_state['history'].append({
+                'selected_title': st.session_state['selected_title'],
+                'selected_level': st.session_state['selected_level'],
+                'selected_keyword': st.session_state['selected_keyword'],
+                'selected_category': st.session_state['selected_category'],
+                'user_input': st.session_state['user_input']
+            })
             st.session_state['selected_title'] = row.get('교재명')
             st.session_state['selected_level'] = None
             st.session_state['selected_keyword'] = None
             st.session_state['selected_category'] = None
-            st.experimental_rerun()
+            st.rerun()
 
 else:
     st.info("검색 결과가 없습니다. 다른 키워드를 입력해 주세요.")
