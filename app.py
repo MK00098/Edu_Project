@@ -1,4 +1,4 @@
-# Streamlit 대쉬보드 (검색 결과 없음 방지 + 드랍다운 자동 이동)
+# Streamlit 대쉬보드 (검색 결과 없음 방지 + 드랍다운 자동 이동 + st.rerun)
 
 import streamlit as st
 import pandas as pd
@@ -87,7 +87,7 @@ if user_input:
         selected_title = st.selectbox("🔎 검색 결과", filtered_suggestions)
         if selected_title and selected_title != user_input:
             st.session_state['user_input'] = selected_title
-            st.experimental_rerun()
+            st.rerun()  # ✅ 최신 Streamlit 방식
 
 # --- 검색 결과 필터링 ---
 if user_input:
@@ -124,4 +124,4 @@ if not results.empty and user_input:
             st.markdown(" ")
 elif user_input:
     st.info("검색 결과가 없습니다. 다른 키워드를 입력해 주세요.")
-# (🔥 아무 입력도 없을 때는 '검색 결과 없음' 메시지 출력 안함)
+# (🔥 아무 입력도 없으면 '검색 결과 없음' 메시지 안 뜸)
