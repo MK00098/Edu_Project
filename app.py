@@ -1,4 +1,4 @@
-# Streamlit 대쉬보드 (gcp_service_account만 Secrets에서 불러오는 버전)
+# Streamlit 대쉬보드 (폰트 한 단계씩 다운 반영)
 
 import streamlit as st
 import pandas as pd
@@ -17,9 +17,9 @@ credentials = service_account.Credentials.from_service_account_info(
 # --- 구글시트 연결 ---
 gc = gspread.authorize(credentials)
 
-# 🔥 스프레드시트 ID와 워크시트 이름은 코드 안에 직접 고정
-SPREADSHEET_ID = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"  # 너가 사용하는 구글시트 ID
-WORKSHEET_NAME = "students(for API)"                             # 워크시트 이름
+# 🔥 스프레드시트 ID와 워크시트 이름
+SPREADSHEET_ID = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
+WORKSHEET_NAME = "students(for API)"
 
 spreadsheet = gc.open_by_key(SPREADSHEET_ID)
 worksheet = spreadsheet.worksheet(WORKSHEET_NAME)
@@ -58,7 +58,7 @@ df = df.rename(columns={
 df['추가예시'] = ''
 
 # --- Streamlit UI 시작 ---
-st.title("📚 초등 AI 교재 인사이트")
+st.markdown("<h2>📚 초등 AI 교재 인사이트</h2>", unsafe_allow_html=True)
 
 # 세션 상태로 입력값 관리
 if 'user_input' not in st.session_state:
@@ -99,23 +99,23 @@ else:
 if not results.empty:
     for idx, row in results.iterrows():
         st.markdown("---")
-        st.header(f"📖 {row.get('교재명', '')}")
+        st.markdown(f"<h3>📖 {row.get('교재명', '')}</h3>", unsafe_allow_html=True)
 
         st.caption(f"🗂️ 카테고리: {row.get('카테고리', '')}")
 
-        st.subheader("🧠 난이도")
+        st.markdown("<h4>🧠 난이도</h4>", unsafe_allow_html=True)
         st.success(row.get('난이도', ''))
 
-        st.subheader("📚 에듀넷 키워드")
+        st.markdown("<h4>📚 에듀넷 키워드</h4>", unsafe_allow_html=True)
         st.write(row.get('에듀넷 키워드', ''))
 
-        st.subheader("🏫 주요 키워드")
+        st.markdown("<h4>🏫 주요 키워드</h4>", unsafe_allow_html=True)
         st.write(row.get('주요 키워드', ''))
 
-        st.subheader("💡 교수 전략")
+        st.markdown("<h4>💡 교수 전략</h4>", unsafe_allow_html=True)
         st.info(row.get('교수 전략', ''))
 
-        st.subheader("🧩 추가 예시")
+        st.markdown("<h4>🧩 추가 예시</h4>", unsafe_allow_html=True)
         st.write(row.get('추가예시', ''))
 else:
     st.info("검색 결과가 없습니다. 다른 키워드를 입력해 주세요.")
