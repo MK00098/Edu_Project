@@ -2,20 +2,26 @@ import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
+from streamlit_autorefresh import st_autorefresh
+
+# --- 자동 새로고침 (선택, 안 넣어도 무방) ---
+st_autorefresh(interval=60000, limit=None, key="refresh")  # 60초마다 새로고침
 
 # --- 설정 부분 ---
+# Google Cloud 서비스 계정 정보는 Streamlit Secrets에서 가져오기
+SHEET_JSON = st.secrets["gcp_service_account"]
+
+# 구글 스프레드시트 ID는 코드에 직접 작성
+SPREADSHEET_ID = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
+WORKSHEET_NAME = "students(for API)"
+
+# --- 구글시트 연결 ---
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive",
 ]
-
-credentials = Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"],
-    scopes=scope
-)
+credentials = Credentials.from_service_account_info(SHEET_JSON, scopes=scope)
 gc = gspread.authorize(credentials)
-
-# 이후 내용은 그대로~~
 spreadsheet = gc.open_by_key(SPREADSHEET_ID)
 worksheet = spreadsheet.worksheet(WORKSHEET_NAME)
 
@@ -28,7 +34,7 @@ header = df.iloc[0]
 df = df[1:].reset_index(drop=True)
 df.columns = header
 
-# 필요한 컬럼만 추출 (콜론(:) 주의)
+# 필요한 컬럼만 추출
 columns_to_keep = [
     '타이틀', 
     '카테고리', 
@@ -52,51 +58,23 @@ df = df.rename(columns={
 # 추가예시 컬럼 생성
 df['추가예시'] = ''
 
-# --- Streamlit UI 시작 ---
+# --- Streamlit UI ---
 st.title("📚 초등 AI 교재 인사이트")
 
-# 세션 상태로 입력값 관리
-if 'user_input' not in st.session_state:
-    st.session_state['user_input'] = ''
+# 교재명 자동 추천 기능
+search = st.text_input("초등학교 교재명을 검색하세요", placeholder="교재명을 입력하세요...")
 
-def update_input():
-    st.session_state['user_input'] = st.session_state['temp_input']
-
-# 입력창 (글자 입력하면 바로 반응)
-st.text_input(
-    "초등학교 교재명을 검색하세요",
-    key='temp_input',
-    on_change=update_input
-)
-
-# 교재명 리스트
-title_list = df['교재명'].dropna().tolist()
-
-selected_title = None
-user_input = st.session_state['user_input']
-
-if user_input:
-    # 추천 검색어 리스트
-    suggestions = [title for title in title_list if user_input.lower() in title.lower()]
-    
-    # 검색창 바로 아래 추천 리스트 띄우기
-    for suggestion in suggestions:
-        if st.button(suggestion):
-            selected_title = suggestion
-            break
-
-# 최종 검색 결과
-if selected_title:
-    results = df[df['교재명'] == selected_title]
+# 필터링
+if search:
+    filtered = df[df['교재명'].str.contains(search, case=False, na=False)]
 else:
-    results = df[df['교재명'].str.contains(user_input, case=False, na=False)] if user_input else df
+    filtered = df.copy()
 
-# 결과 출력
-if not results.empty:
-    for idx, row in results.iterrows():
+# 검색 결과 출력
+if not filtered.empty:
+    for idx, row in filtered.iterrows():
         st.markdown("---")
-        st.header(f"📖 {row.get('교재명', '')}")
-
+        st.header(f"📖 {row['교재명']}")
         st.caption(f"🗂️ 카테고리: {row.get('카테고리', '')}")
 
         st.subheader("🧠 난이도")
