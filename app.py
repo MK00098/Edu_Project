@@ -1,26 +1,26 @@
-# Streamlit 대쉬보드 (모든 민감정보 Secrets에서 불러오는 최종 버전)
+# Streamlit 대쉬보드 (gcp_service_account만 Secrets에서 불러오는 버전)
 
 import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2 import service_account
 
-# --- Secret에서 불러오기 ---
-SPREADSHEET_ID = st.secrets["SPREADSHEET_ID"]
-WORKSHEET_NAME = st.secrets["WORKSHEET_NAME"]
-
-# --- 구글시트 연결 ---
-scope = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive",
-]
-
+# --- Secret에서 구글 인증 불러오기 ---
 credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"],  # 🔥 json.dumps 필요 없음
-    scopes=scope
+    st.secrets["gcp_service_account"],  # 딕셔너리 그대로 사용
+    scopes=[
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/drive",
+    ]
 )
 
+# --- 구글시트 연결 ---
 gc = gspread.authorize(credentials)
+
+# 🔥 스프레드시트 ID와 워크시트 이름은 코드 안에 직접 고정
+SPREADSHEET_ID = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"  # 너가 사용하는 구글시트 ID
+WORKSHEET_NAME = "students(for API)"                             # 워크시트 이름
+
 spreadsheet = gc.open_by_key(SPREADSHEET_ID)
 worksheet = spreadsheet.worksheet(WORKSHEET_NAME)
 
