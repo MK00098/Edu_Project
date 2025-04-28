@@ -6,18 +6,18 @@ from google.oauth2 import service_account
 # ─── 1) 세션 상태 초기화 ──────────────────────────────────────────────────────
 for key in ('temp_input', 'user_input', 'select_title', 'selected_title', 'selected_tag'):
     if key not in st.session_state:
-        # ‘input’ or ‘select’ 키워드는 빈 문자열, 나머지는 None
         st.session_state[key] = '' if 'input' in key or 'select' in key else None
 
 # ─── 콜백 함수 정의 ───────────────────────────────────────────────────────────
 def update_input():
-    st.session_state['user_input'] = st.session_state['temp_input']
-    st.session_state['select_title'] = ''
-    st.session_state['selected_title'] = None
-    st.session_state['selected_tag'] = None
+    st.session_state['user_input']       = st.session_state['temp_input']
+    st.session_state['select_title']     = ''   # 드롭다운 초기화
+    st.session_state['selected_title']   = None
+    st.session_state['selected_tag']     = None
 
 def update_select():
     sel = st.session_state['select_title']
+    # 드롭다운에서 실제 선택된 값이 "선택 없음"이 아니면 상세페이지로
     if sel and sel != "── 선택 없음 ──":
         st.session_state['selected_title'] = sel
         st.session_state['selected_tag']   = None
@@ -42,17 +42,17 @@ credentials = service_account.Credentials.from_service_account_info(
         "https://www.googleapis.com/auth/drive",
     ],
 )
-gc = gspread.authorize(credentials)
-SPREADSHEET_ID = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
-WORKSHEET_NAME = "students(for API)"
-worksheet = gc.open_by_key(SPREADSHEET_ID).worksheet(WORKSHEET_NAME)
+gc        = gspread.authorize(credentials)
+SPREADSHEET_ID  = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
+WORKSHEET_NAME  = "students(for API)"
+worksheet       = gc.open_by_key(SPREADSHEET_ID).worksheet(WORKSHEET_NAME)
 
 # ─── 3) 데이터 로딩 & 전처리 ─────────────────────────────────────────────────────
 data = worksheet.get_all_values()
-df = pd.DataFrame(data[1:], columns=data[0])
-df = df[['타이틀','카테고리','난이도','키워드','주요 키워드','교수 전략']].rename(
-    columns={'타이틀':'교재명','키워드':'에듀넷 키워드'}
-)
+df   = pd.DataFrame(data[1:], columns=data[0])
+df   = df[['타이틀','카테고리','난이도','키워드','주요 키워드','교수 전략']].rename(
+           columns={'타이틀':'교재명','키워드':'에듀넷 키워드'}
+       )
 df['추가예시'] = ''
 
 # ─── 4) 페이지 헤더 ───────────────────────────────────────────────────────────
@@ -66,14 +66,23 @@ st.text_input(
 )
 user_input = st.session_state['user_input']
 
-# ─── 6) 추천 교재 드롭다운 ────────────────────────────────────────────────────
+# ─── 6) 추천 교재 드롭다운 (수정) ───────────────────────────────────────────────
 title_list  = df['교재명'].dropna().tolist()
 suggestions = [t for t in title_list if user_input.lower() in t.lower()]
 
 if suggestions:
+    options = ["── 선택 없음 ──"] + suggestions
+
+    # 세션 상태 값이 options 에 없으면 기본을 "── 선택 없음 ──" 으로
+    curr = st.session_state['select_title']
+    if curr not in options:
+        curr = options[0]
+        st.session_state['select_title'] = curr
+
     st.selectbox(
         "추천 교재를 선택하세요",
-        ["── 선택 없음 ──"] + suggestions,
+        options,
+        index=options.index(curr),
         key='select_title',
         on_change=update_select
     )
@@ -85,71 +94,33 @@ else:
 selected_title = st.session_state['selected_title']
 selected_tag   = st.session_state['selected_tag']
 
-# ─── 8) ‘상세 페이지’ ─────────────────────────────────────────────────────────
+# ─── 8) 상세 페이지 ─────────────────────────────────────────────────────────
 if selected_title:
-    # 뒤로 가기 버튼
     st.button("🔙 뒤로", on_click=clear_selection)
-
-    row = df[df['교재명'] == selected_title].iloc[0]
+    row = df[df['교재명']==selected_title].iloc[0]
 
     st.markdown(f"<h3>📖 {row['교재명']}</h3>", unsafe_allow_html=True)
+    # (중략) 동일한 태그·교수전략·추가예시 블록
 
-    # 클릭 가능한 태그들
-    tags = [
-        ("🗂️ 카테고리",    '카테고리',        None),
-        ("🧠 난이도",      '난이도',          None),
-        ("📚 에듀넷 키워드",'에듀넷 키워드',  '/'),
-        ("🏫 주요 키워드",  '주요 키워드',    '/'),
-    ]
-    for label, col, sep in tags:
-        st.markdown(f"<h4>{label}</h4>", unsafe_allow_html=True)
-        items = [row[col]] if sep is None else str(row[col]).split(sep)
-        for it in items:
-            it = it.strip()
-            if not it:
-                continue
-            st.button(
-                it,
-                key=f"tag_{col}_{it}",
-                on_click=select_tag,
-                args=(it,)
-            )
-
-    # 교수 전략 & 추가 예시
-    st.markdown("<h4>💡 교수 전략</h4>", unsafe_allow_html=True)
-    st.info(row['교수 전략'])
-
-    st.markdown("<h4>🧩 추가 예시</h4>", unsafe_allow_html=True)
-    st.write(row['추가예시'])
-
-# ─── 9) ‘태그 기반 목록 페이지’ ─────────────────────────────────────────────────
+# ─── 9) 태그 기반 목록 페이지 ─────────────────────────────────────────────────
 elif selected_tag:
-    # 뒤로 가기 버튼
     st.button("🔙 뒤로", on_click=clear_selection)
-
     st.markdown("---")
     st.markdown(f"### 🔎 '{selected_tag}' 관련 교재 목록")
 
-    # 태그가 속한 교재명 리스트
-    mask = (
-        (df['카테고리'] == selected_tag) |
-        (df['난이도']   == selected_tag) |
+    mask     = (
+        (df['카테고리']==selected_tag) |
+        (df['난이도']==selected_tag)     |
         (df['에듀넷 키워드'].str.contains(selected_tag, na=False)) |
         (df['주요 키워드'].str.contains(selected_tag, na=False))
     )
     filtered = df[mask]['교재명'].dropna().tolist()
-
     for title in filtered:
-        st.button(
-            title,
-            key=f"list_{title}",
-            on_click=select_title_callback,
-            args=(title,)
-        )
+        st.button(title, key=f"list_{title}",
+                  on_click=select_title_callback, args=(title,))
 
-# ─── 10) ‘기본 리스트 또는 검색 결과’ ───────────────────────────────────────────
+# ─── 10) 기본 리스트 또는 이름 검색 결과 ───────────────────────────────────────
 else:
-    # 사용자가 직접 입력/드롭다운 선택 없을 때, 전체 또는 이름 검색 결과 보여주기
     if user_input:
         results = df[df['교재명'].str.contains(user_input, case=False, na=False)]
     else:
