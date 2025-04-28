@@ -1,4 +1,4 @@
-# Streamlit 대쉬보드 (검색 결과 없음 방지 + 드랍다운 자동 이동 + st.rerun)
+# Streamlit 대쉬보드 (최적화 버전)
 
 import streamlit as st
 import pandas as pd
@@ -17,7 +17,7 @@ credentials = service_account.Credentials.from_service_account_info(
 # --- 구글시트 연결 ---
 gc = gspread.authorize(credentials)
 
-# 🔥 스프레드시트 ID와 워크시트 이름
+# --- 스프레드시트 ID와 워크시트 이름 설정 ---
 SPREADSHEET_ID = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
 WORKSHEET_NAME = "students(for API)"
 
@@ -61,33 +61,32 @@ df['추가예시'] = ''
 st.markdown("<h2 style='text-align:center;'>📚 초등 AI 교재 인사이트</h2>", unsafe_allow_html=True)
 st.markdown("---")
 
-# 세션 상태로 입력값 관리
+# --- 세션 상태 초기화 ---
 if 'user_input' not in st.session_state:
     st.session_state['user_input'] = ''
-
-def update_input():
-    st.session_state['user_input'] = st.session_state['temp_input']
+if 'temp_input' not in st.session_state:
+    st.session_state['temp_input'] = ''
 
 # --- 입력창 ---
 st.text_input(
     "초등학교 교재명을 검색하세요",
-    key='temp_input',
-    on_change=update_input
+    key='temp_input'
 )
 
-# 교재명 리스트
+user_input = st.session_state['user_input']
+temp_input = st.session_state['temp_input']
+
+# --- 추천 드랍다운 (temp_input 있을 때만) ---
 title_list = df['교재명'].dropna().tolist()
 
-# 추천 드랍다운 (입력값 있을 때만)
-user_input = st.session_state['user_input']
-
-if user_input:
-    filtered_suggestions = [title for title in title_list if user_input.lower() in title.lower()]
+if temp_input and not user_input:
+    filtered_suggestions = [title for title in title_list if temp_input.lower() in title.lower()]
     if filtered_suggestions:
         selected_title = st.selectbox("🔎 검색 결과", filtered_suggestions)
-        if selected_title and selected_title != user_input:
+        if selected_title:
             st.session_state['user_input'] = selected_title
-            st.rerun()  # ✅ 최신 Streamlit 방식
+            st.session_state['temp_input'] = selected_title
+            st.rerun()
 
 # --- 검색 결과 필터링 ---
 if user_input:
@@ -122,6 +121,5 @@ if not results.empty and user_input:
             st.write(row.get('추가예시', ''))
             
             st.markdown(" ")
-elif user_input:
+elif temp_input:
     st.info("검색 결과가 없습니다. 다른 키워드를 입력해 주세요.")
-# (🔥 아무 입력도 없으면 '검색 결과 없음' 메시지 안 뜸)
