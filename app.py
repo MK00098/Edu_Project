@@ -1,47 +1,50 @@
-# --- (1) 검색어, 추천 버튼 로직 등 생략 …  
-user_input = st.session_state['user_input']
-selected_title = None
+import streamlit as st
+import pandas as pd
+import gspread
+from google.oauth2 import service_account
 
-# (추천 버튼 클릭 시 selected_title 세팅 생략…)
+# 1) 세션 상태 초기화: 반드시 가장 위에!
+if 'user_input' not in st.session_state:
+    st.session_state['user_input'] = ''
+if 'selected_title' not in st.session_state:
+    st.session_state['selected_title'] = None
 
-# --- (2) results 할당
+# 2) 구글 인증, 시트 로드 (생략) …
+
+# 3) 입력 업데이트 콜백
+def update_input():
+    st.session_state['user_input'] = st.session_state['temp_input']
+    st.session_state['selected_title'] = None  # 새 검색어 입력 시 이전 선택 초기화
+
+# 4) 입력창
+st.text_input(
+    "초등학교 교재명을 검색하세요",
+    key='temp_input',
+    on_change=update_input
+)
+
+# 5) 세션에서 안전하게 꺼내 쓰기
+user_input     = st.session_state['user_input']
+selected_title = st.session_state['selected_title']
+
+# 6) 추천 버튼 로직 (예시)
+title_list = df['교재명'].tolist()
+for t in title_list:
+    if user_input.lower() in t.lower() and st.button(t, key=t):
+        st.session_state['selected_title'] = t
+        selected_title = t
+        break
+
+# 7) results 정의
 if selected_title:
     results = df[df['교재명'] == selected_title]
+elif user_input:
+    results = df[df['교재명'].str.contains(user_input, case=False, na=False)]
 else:
-    if user_input:
-        results = df[df['교재명'].str.contains(user_input, case=False, na=False)]
-    else:
-        # 입력도 없고, 버튼도 안 눌렸으면 전체 보여주기
-        results = df.copy()
+    results = df.copy()
 
-# --- (3) UI 출력
+# 8) 결과 출력
 if not results.empty:
-    for idx, row in results.iterrows():
-        st.markdown("---")
-        st.markdown(f"<h3>📖 {row['교재명']}</h3>", unsafe_allow_html=True)
-
-        st.markdown("<h4>🗂️ 카테고리</h4>", unsafe_allow_html=True)
-        if st.button(row['카테고리'], key=f"cat_{idx}"):
-            st.session_state['user_input'] = row['카테고리']
-
-        st.markdown("<h4>🧠 난이도</h4>", unsafe_allow_html=True)
-        if st.button(row['난이도'], key=f"diff_{idx}"):
-            st.session_state['user_input'] = row['난이도']
-
-        st.markdown("<h4>📚 에듀넷 키워드</h4>", unsafe_allow_html=True)
-        for kw in str(row['에듀넷 키워드']).split('/'):
-            if st.button(kw.strip(), key=f"edu_{idx}_{kw}"):
-                st.session_state['user_input'] = kw.strip()
-
-        st.markdown("<h4>🏫 주요 키워드</h4>", unsafe_allow_html=True)
-        for kw in str(row['주요 키워드']).split('/'):
-            if st.button(kw.strip(), key=f"major_{idx}_{kw}"):
-                st.session_state['user_input'] = kw.strip()
-
-        st.markdown("<h4>💡 교수 전략</h4>", unsafe_allow_html=True)
-        st.info(row['교수 전략'])
-
-        st.markdown("<h4>🧩 추가 예시</h4>", unsafe_allow_html=True)
-        st.write(row['추가예시'])
+    # … 앞서 드린 버튼·마크다운 출력 코드 …
 else:
     st.info("검색 결과가 없습니다. 다른 키워드를 입력해 주세요.")
