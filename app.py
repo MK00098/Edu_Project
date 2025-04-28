@@ -1,4 +1,4 @@
-# Streamlit 대쉬보드 (폰트 한 단계씩 다운 반영)
+# Streamlit 대쉬보드 (카테고리 레벨 업 반영)
 
 import streamlit as st
 import pandas as pd
@@ -7,7 +7,7 @@ from google.oauth2 import service_account
 
 # --- Secret에서 구글 인증 불러오기 ---
 credentials = service_account.Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"],  # 딕셔너리 그대로 사용
+    st.secrets["gcp_service_account"],
     scopes=[
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive",
@@ -101,7 +101,8 @@ if not results.empty:
         st.markdown("---")
         st.markdown(f"<h3>📖 {row.get('교재명', '')}</h3>", unsafe_allow_html=True)
 
-        st.caption(f"🗂️ 카테고리: {row.get('카테고리', '')}")
+        st.markdown("<h4>🗂️ 카테고리</h4>", unsafe_allow_html=True)
+        st.write(row.get('카테고리', ''))
 
         st.markdown("<h4>🧠 난이도</h4>", unsafe_allow_html=True)
         st.success(row.get('난이도', ''))
