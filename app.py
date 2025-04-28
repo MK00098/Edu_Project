@@ -4,18 +4,13 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 # --- 설정 부분 ---
-SHEET_JSON = "D:/python-workspace/Edu-project/edu-workspace-9cd43f83c2b3.json"
-SPREADSHEET_ID = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
-WORKSHEET_NAME = "students(for API)"
-
-# --- 구글시트 연결 ---
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive",
 ]
 
-credentials = Credentials.from_service_account_file(
-    SHEET_JSON,
+credentials = Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"],
     scopes=scope
 )
 gc = gspread.authorize(credentials)
