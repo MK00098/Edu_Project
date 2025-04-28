@@ -4,16 +4,16 @@ import gspread
 from google.oauth2 import service_account
 
 # ─── 1) 세션 상태 초기화 ──────────────────────────────────────────────────────
-for key in ('temp_input', 'user_input', 'select_title', 'selected_title', 'selected_tag'):
+for key in ('temp_input', 'user_input', 'selected_title', 'selected_tag'):
     if key not in st.session_state:
-        st.session_state[key] = '' if 'input' in key or 'select' in key else None
-# history: 뒤로가기용 스택
+        st.session_state[key] = '' if 'input' in key else None
+
+# 뒤로가기 히스토리 스택
 if 'history' not in st.session_state:
     st.session_state['history'] = []
 
 # ─── 2) 내비게이션 헬퍼 ────────────────────────────────────────────────────────
 def add_history():
-    # 현재 선택된 상태를 스택에 저장
     st.session_state['history'].append((
         st.session_state['selected_title'],
         st.session_state['selected_tag']
@@ -27,18 +27,10 @@ def go_back():
 
 # ─── 3) 콜백 함수 정의 ─────────────────────────────────────────────────────────
 def update_input():
-    st.session_state['user_input']      = st.session_state['temp_input']
-    st.session_state['select_title']    = ''
-    st.session_state['selected_title']  = None
-    st.session_state['selected_tag']    = None
-    st.session_state['history'].clear()  # 새 검색이면 뒤로가기 초기화
-
-def update_select():
-    sel = st.session_state['select_title']
-    if sel and sel != "── 선택 없음 ──":
-        add_history()
-        st.session_state['selected_title'] = sel
-        st.session_state['selected_tag']   = None
+    st.session_state['user_input']     = st.session_state['temp_input']
+    st.session_state['selected_title'] = None
+    st.session_state['selected_tag']   = None
+    st.session_state['history'].clear()
 
 def select_tag(tag):
     add_history()
@@ -76,17 +68,18 @@ st.markdown("<h2>📚 초등 AI 교재 인사이트</h2>", unsafe_allow_html=Tru
 st.text_input("초등학교 교재명을 검색하세요", key='temp_input', on_change=update_input)
 user_input = st.session_state['user_input']
 
-# ─── 7) 추천 교재 드롭다운 ────────────────────────────────────────────────────
+# ─── 7) 추천 교재 드롭다운 (반환값 사용) ─────────────────────────────────────────
 title_list  = df['교재명'].dropna().tolist()
 suggestions = [t for t in title_list if user_input.lower() in t.lower()]
 
 if suggestions:
-    st.selectbox(
+    sel = st.selectbox(
         "추천 교재를 선택하세요",
         ["── 선택 없음 ──"] + suggestions,
-        key='select_title',
-        on_change=update_select
+        index=0
     )
+    if sel != "── 선택 없음 ──":
+        select_title_callback(sel)
 elif user_input:
     st.info("🔍 검색어에 해당하는 교재가 없습니다.")
 
@@ -101,6 +94,7 @@ if selected_title:
     row = df[df['교재명'] == selected_title].iloc[0]
 
     st.markdown(f"<h3>📖 {row['교재명']}</h3>", unsafe_allow_html=True)
+
     # 태그 버튼
     for label, col, sep in [
         ("🗂️ 카테고리",    '카테고리',        None),
