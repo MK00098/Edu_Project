@@ -51,23 +51,18 @@ for key in ['selected_title', 'selected_level', 'selected_keyword', 'selected_ca
     if key not in st.session_state:
         st.session_state[key] = None if key in ['selected_title', 'selected_level', 'selected_keyword', 'selected_category'] else [] if key in ['history', 'forward_history'] else ''
 
-# --- 버튼 3개 가로 배치 ---
-col1, col2, col3 = st.columns([1, 1, 1])
+# --- 버튼 레이아웃 (홈 / 뒤로 / 앞으로) ---
+btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1])
 
-with col1:
+with btn_col1:
     if st.button("🏠 홈으로"):
-        st.session_state['selected_title'] = None
-        st.session_state['selected_level'] = None
-        st.session_state['selected_keyword'] = None
-        st.session_state['selected_category'] = None
-        st.session_state['user_input'] = ''
-        st.session_state['history'] = []
-        st.session_state['forward_history'] = []
+        for k in ['selected_title', 'selected_level', 'selected_keyword', 'selected_category', 'user_input', 'history', 'forward_history']:
+            st.session_state[k] = None if k in ['selected_title', 'selected_level', 'selected_keyword', 'selected_category'] else [] if k in ['history', 'forward_history'] else ''
         st.rerun()
 
-with col2:
+with btn_col2:
     if st.session_state['history']:
-        if st.button("🔙 뒤로가기"):
+        if st.button("🔙 뒤로"):
             current = {
                 'selected_title': st.session_state['selected_title'],
                 'selected_level': st.session_state['selected_level'],
@@ -80,9 +75,9 @@ with col2:
             st.session_state.update(last_state)
             st.rerun()
 
-with col3:
+with btn_col3:
     if st.session_state['forward_history']:
-        if st.button("🔜 앞으로가기"):
+        if st.button("🔜 앞으로"):
             st.session_state['history'].append({
                 'selected_title': st.session_state['selected_title'],
                 'selected_level': st.session_state['selected_level'],
@@ -97,10 +92,8 @@ with col3:
 # --- 검색창 ---
 def update_input():
     st.session_state['user_input'] = st.session_state['temp_input']
-    st.session_state['selected_title'] = None
-    st.session_state['selected_level'] = None
-    st.session_state['selected_keyword'] = None
-    st.session_state['selected_category'] = None
+    for k in ['selected_title', 'selected_level', 'selected_keyword', 'selected_category']:
+        st.session_state[k] = None
 
 st.text_input(
     "초등학교 교재명을 검색하세요",
@@ -185,13 +178,13 @@ if not results.empty:
         st.markdown("<h4>📚 에듀넷 키워드</h4>", unsafe_allow_html=True)
         st.write(row.get('에듀넷 키워드', ''))
 
-        # 주요 키워드 (2+3개 고정, 줄바꿈 없음)
+        # 주요 키워드 (위 2개 + 아래 3개 + 가로로 딱 붙게)
         st.markdown("<h4>🏫 주요 키워드</h4>", unsafe_allow_html=True)
         keywords = str(row.get('주요 키워드', '')).split('/')
 
         if keywords:
             # 위에 2개
-            top_cols = st.columns(2)
+            top_cols = st.columns(2, gap="small")
             for i in range(min(2, len(keywords))):
                 keyword = keywords[i].strip()
                 if keyword:
@@ -210,8 +203,8 @@ if not results.empty:
                             st.session_state['selected_category'] = None
                             st.rerun()
 
-            # 아래에 3개
-            bottom_cols = st.columns(3)
+            # 아래 3개
+            bottom_cols = st.columns(3, gap="small")
             for j in range(2, min(5, len(keywords))):
                 keyword = keywords[j].strip()
                 if keyword:
