@@ -4,24 +4,27 @@ import gspread
 from google.oauth2.service_account import Credentials
 from streamlit_autorefresh import st_autorefresh
 
-# --- 자동 새로고침 (선택, 안 넣어도 무방) ---
+# --- 자동 새로고침 (선택 사항) ---
 st_autorefresh(interval=60000, limit=None, key="refresh")  # 60초마다 새로고침
 
 # --- 설정 부분 ---
-# Google Cloud 서비스 계정 정보는 Streamlit Secrets에서 가져오기
-SHEET_JSON = st.secrets["gcp_service_account"]
-
-# 구글 스프레드시트 ID는 코드에 직접 작성
-SPREADSHEET_ID = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
-WORKSHEET_NAME = "students(for API)"
-
-# --- 구글시트 연결 ---
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive",
 ]
-credentials = Credentials.from_service_account_info(SHEET_JSON, scopes=scope)
+
+# 서비스 계정 키를 Streamlit Secrets에서 가져옴
+credentials = Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"],
+    scopes=scope
+)
+
 gc = gspread.authorize(credentials)
+
+SPREADSHEET_ID = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
+WORKSHEET_NAME = "students(for API)"
+
+# 구글시트 연결
 spreadsheet = gc.open_by_key(SPREADSHEET_ID)
 worksheet = spreadsheet.worksheet(WORKSHEET_NAME)
 
@@ -61,11 +64,26 @@ df['추가예시'] = ''
 # --- Streamlit UI ---
 st.title("📚 초등 AI 교재 인사이트")
 
-# 교재명 자동 추천 기능
-search = st.text_input("초등학교 교재명을 검색하세요", placeholder="교재명을 입력하세요...")
+# 교재명 리스트 준비
+title_list = df['교재명'].dropna().unique().tolist()
 
-# 필터링
+# 검색창 + 추천 리스트
+search = st.text_input("초등학교 교재명을 입력하세요", placeholder="예: 소프트웨어")
+
+# 자동 추천 드롭다운
 if search:
+    matching_titles = [title for title in title_list if search.lower() in title.lower()]
+    if matching_titles:
+        selected_title = st.selectbox("추천 교재명", matching_titles)
+    else:
+        selected_title = None
+else:
+    selected_title = None
+
+# 결과 필터링
+if selected_title:
+    filtered = df[df['교재명'] == selected_title]
+elif search:
     filtered = df[df['교재명'].str.contains(search, case=False, na=False)]
 else:
     filtered = df.copy()
