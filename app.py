@@ -15,7 +15,6 @@ credentials = Credentials.from_service_account_info(
 # --- 구글시트 연결 ---
 gc = gspread.authorize(credentials)
 
-# 스프레드시트 ID와 워크시트 이름
 SPREADSHEET_ID = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
 WORKSHEET_NAME = "students(for API)"
 
@@ -26,18 +25,13 @@ worksheet = spreadsheet.worksheet(WORKSHEET_NAME)
 data = worksheet.get_all_values()
 df = pd.DataFrame(data)
 
-# 첫 행을 헤더로 설정
 header = df.iloc[0]
 df = df[1:].reset_index(drop=True)
 df.columns = header
 
-# 필요한 컬럼만 추출
-columns_to_keep = [
-    '타이틀', '카테고리', '난이도', '키워드', '주요 키워드', '교수 전략'
-]
+columns_to_keep = ['타이틀', '카테고리', '난이도', '키워드', '주요 키워드', '교수 전략']
 df = df[columns_to_keep]
 
-# 컬럼명 매핑
 df = df.rename(columns={
     '타이틀': '교재명',
     '카테고리': '카테고리',
@@ -47,7 +41,6 @@ df = df.rename(columns={
     '교수 전략': '교수 전략'
 })
 
-# 추가 예시 컬럼 생성
 df['추가예시'] = ''
 
 # --- Streamlit UI 시작 ---
@@ -115,7 +108,7 @@ st.text_input(
     on_change=update_input
 )
 
-# --- 추천 검색어 기능 ---
+# 추천 검색어
 title_list = df['교재명'].dropna().tolist()
 user_input = st.session_state['user_input']
 
@@ -124,7 +117,6 @@ selected_level = st.session_state['selected_level']
 selected_keyword = st.session_state['selected_keyword']
 selected_category = st.session_state['selected_category']
 
-# 추천 리스트 띄우기
 if user_input and not (selected_title or selected_level or selected_keyword or selected_category):
     suggestions = [title for title in title_list if user_input.lower() in title.lower()]
     for suggestion in suggestions:
@@ -193,26 +185,50 @@ if not results.empty:
         st.markdown("<h4>📚 에듀넷 키워드</h4>", unsafe_allow_html=True)
         st.write(row.get('에듀넷 키워드', ''))
 
-        # 주요 키워드 (가로 배치)
+        # 주요 키워드 (2+3개 고정, 줄바꿈 없음)
         st.markdown("<h4>🏫 주요 키워드</h4>", unsafe_allow_html=True)
         keywords = str(row.get('주요 키워드', '')).split('/')
-        cols = st.columns(4)
-        for idx2, keyword in enumerate(keywords):
-            if keyword.strip() != "":
-                with cols[idx2 % 4]:
-                    if st.button(keyword.strip(), key=f"keyword_{idx}_{keyword}"):
-                        st.session_state['history'].append({
-                            'selected_title': st.session_state['selected_title'],
-                            'selected_level': st.session_state['selected_level'],
-                            'selected_keyword': st.session_state['selected_keyword'],
-                            'selected_category': st.session_state['selected_category'],
-                            'user_input': st.session_state['user_input']
-                        })
-                        st.session_state['selected_keyword'] = keyword.strip()
-                        st.session_state['selected_title'] = None
-                        st.session_state['selected_level'] = None
-                        st.session_state['selected_category'] = None
-                        st.rerun()
+
+        if keywords:
+            # 위에 2개
+            top_cols = st.columns(2)
+            for i in range(min(2, len(keywords))):
+                keyword = keywords[i].strip()
+                if keyword:
+                    with top_cols[i]:
+                        if st.button(keyword, key=f"keyword_top_{idx}_{i}"):
+                            st.session_state['history'].append({
+                                'selected_title': st.session_state['selected_title'],
+                                'selected_level': st.session_state['selected_level'],
+                                'selected_keyword': st.session_state['selected_keyword'],
+                                'selected_category': st.session_state['selected_category'],
+                                'user_input': st.session_state['user_input']
+                            })
+                            st.session_state['selected_keyword'] = keyword
+                            st.session_state['selected_title'] = None
+                            st.session_state['selected_level'] = None
+                            st.session_state['selected_category'] = None
+                            st.rerun()
+
+            # 아래에 3개
+            bottom_cols = st.columns(3)
+            for j in range(2, min(5, len(keywords))):
+                keyword = keywords[j].strip()
+                if keyword:
+                    with bottom_cols[(j-2) % 3]:
+                        if st.button(keyword, key=f"keyword_bottom_{idx}_{j}"):
+                            st.session_state['history'].append({
+                                'selected_title': st.session_state['selected_title'],
+                                'selected_level': st.session_state['selected_level'],
+                                'selected_keyword': st.session_state['selected_keyword'],
+                                'selected_category': st.session_state['selected_category'],
+                                'user_input': st.session_state['user_input']
+                            })
+                            st.session_state['selected_keyword'] = keyword
+                            st.session_state['selected_title'] = None
+                            st.session_state['selected_level'] = None
+                            st.session_state['selected_category'] = None
+                            st.rerun()
 
         # 교수 전략
         st.markdown("<h4>💡 교수 전략</h4>", unsafe_allow_html=True)
@@ -221,21 +237,6 @@ if not results.empty:
         # 추가 예시
         st.markdown("<h4>🧩 추가 예시</h4>", unsafe_allow_html=True)
         st.write(row.get('추가예시', ''))
-
-        # 교재명 다시 버튼으로
-        if st.button(f"👉 {row.get('교재명', '')} 상세보기", key=f"title_{idx}"):
-            st.session_state['history'].append({
-                'selected_title': st.session_state['selected_title'],
-                'selected_level': st.session_state['selected_level'],
-                'selected_keyword': st.session_state['selected_keyword'],
-                'selected_category': st.session_state['selected_category'],
-                'user_input': st.session_state['user_input']
-            })
-            st.session_state['selected_title'] = row.get('교재명')
-            st.session_state['selected_level'] = None
-            st.session_state['selected_keyword'] = None
-            st.session_state['selected_category'] = None
-            st.rerun()
 
 else:
     st.info("검색 결과가 없습니다. 다른 키워드를 입력해 주세요.")
