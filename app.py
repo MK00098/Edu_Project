@@ -7,7 +7,6 @@ from google.oauth2 import service_account
 import json
 
 # --- Secret 불러오기 ---
-OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 SHEET_JSON_CONTENT = st.secrets["SHEET_JSON"]
 SPREADSHEET_ID = st.secrets["SPREADSHEET_ID"]
 WORKSHEET_NAME = st.secrets["WORKSHEET_NAME"]
