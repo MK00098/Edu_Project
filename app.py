@@ -1,4 +1,4 @@
-# Streamlit 대쉬보드 (최적화 버전)
+# Streamlit 대쉬보드 (포함 검색 최적화 버전)
 
 import streamlit as st
 import pandas as pd
@@ -76,9 +76,10 @@ st.text_input(
 user_input = st.session_state['user_input']
 temp_input = st.session_state['temp_input']
 
-# --- 추천 드랍다운 (temp_input 있을 때만) ---
+# --- 교재 리스트 생성 ---
 title_list = df['교재명'].dropna().tolist()
 
+# --- 추천 드랍다운 (temp_input 있을 때만) ---
 if temp_input and not user_input:
     filtered_suggestions = [title for title in title_list if temp_input.lower() in title.lower()]
     if filtered_suggestions:
@@ -88,11 +89,11 @@ if temp_input and not user_input:
             st.session_state['temp_input'] = selected_title
             st.rerun()
 
-# --- 검색 결과 필터링 ---
+# --- 검색 결과 필터링 (항상 포함 검색!) ---
 if user_input:
     results = df[df['교재명'].str.contains(user_input, case=False, na=False)]
 else:
-    results = pd.DataFrame()  # 아무것도 입력 안 하면 빈 결과
+    results = pd.DataFrame()
 
 # --- 결과 출력 ---
 if not results.empty and user_input:
