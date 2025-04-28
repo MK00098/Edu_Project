@@ -1,13 +1,11 @@
-# Streamlit 대쉬보드 (모든 민감정보 Secrets에서 불러오는 버전)
+# Streamlit 대쉬보드 (모든 민감정보 Secrets에서 불러오는 최종 버전)
 
 import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2 import service_account
-import json
 
 # --- Secret에서 불러오기 ---
-SHEET_JSON_CONTENT = json.dumps(st.secrets["gcp_service_account"])
 SPREADSHEET_ID = st.secrets["SPREADSHEET_ID"]
 WORKSHEET_NAME = st.secrets["WORKSHEET_NAME"]
 
@@ -18,7 +16,7 @@ scope = [
 ]
 
 credentials = service_account.Credentials.from_service_account_info(
-    json.loads(SHEET_JSON_CONTENT),
+    st.secrets["gcp_service_account"],  # 🔥 json.dumps 필요 없음
     scopes=scope
 )
 
