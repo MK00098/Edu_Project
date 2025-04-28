@@ -5,66 +5,59 @@ from google.oauth2 import service_account
 
 # ─── 1) 세션 상태 초기화 ──────────────────────────────────────────────────────
 for key in (
-    'temp_input',
-    'user_input',
-    'select_title',
-    'selected_title',
-    'selected_tag',
-    'history'
+    'temp_input', 'user_input',
+    'select_title', 'selected_title', 'selected_tag',
+    'prev_title', 'prev_tag'
 ):
     if key not in st.session_state:
-        if key == 'history':
-            st.session_state[key] = []
-        elif 'input' in key or 'select' in key:
+        if key in ('temp_input', 'user_input', 'select_title'):
             st.session_state[key] = ''
         else:
             st.session_state[key] = None
 
-# ─── 2) 내비게이션 헬퍼 ───────────────────────────────────────────────────────
-def push_history():
-    # 현재 페이지 상태를 스택에 저장
-    st.session_state.history.append({
-        'selected_title': st.session_state.selected_title,
-        'selected_tag':   st.session_state.selected_tag
-    })
-
-def go_back():
-    # 스택에서 마지막 상태를 꺼내 복원
-    if st.session_state.history:
-        last = st.session_state.history.pop()
-        st.session_state.selected_title = last['selected_title']
-        st.session_state.selected_tag   = last['selected_tag']
-
-def clear_selection():
-    # 홈으로 이동: 선택과 기록 모두 초기화
+# ─── 2) 콜백 함수 정의 ───────────────────────────────────────────────────────────
+def update_input():
+    st.session_state.user_input     = st.session_state.temp_input
+    st.session_state.select_title   = ''
+    st.session_state.prev_title     = None
+    st.session_state.prev_tag       = None
     st.session_state.selected_title = None
     st.session_state.selected_tag   = None
-    st.session_state.history        = []
-
-# ─── 3) 콜백 정의 ─────────────────────────────────────────────────────────────
-def update_input():
-    st.session_state.user_input   = st.session_state.temp_input
-    st.session_state.select_title = ''
-    clear_selection()
 
 def update_select():
     sel = st.session_state.select_title
     if sel and sel != "── 선택 없음 ──":
-        push_history()
+        # 이전 상태 저장
+        st.session_state.prev_title = st.session_state.selected_title
+        st.session_state.prev_tag   = st.session_state.selected_tag
         st.session_state.selected_title = sel
         st.session_state.selected_tag   = None
 
 def select_tag(tag):
-    push_history()
+    st.session_state.prev_title     = st.session_state.selected_title
+    st.session_state.prev_tag       = st.session_state.selected_tag
     st.session_state.selected_tag   = tag
     st.session_state.selected_title = None
 
 def select_title_callback(title):
-    push_history()
+    st.session_state.prev_title     = st.session_state.selected_title
+    st.session_state.prev_tag       = st.session_state.selected_tag
     st.session_state.selected_title = title
     st.session_state.selected_tag   = None
 
-# ─── 4) 구글 인증 & 시트 로드 ─────────────────────────────────────────────────
+def go_back():
+    # 직전 상태로 복원
+    st.session_state.selected_title = st.session_state.prev_title
+    st.session_state.selected_tag   = st.session_state.prev_tag
+    st.session_state.prev_title     = None
+    st.session_state.prev_tag       = None
+
+def clear_selection():
+    # 홈으로
+    for k in ('prev_title','prev_tag','selected_title','selected_tag'):
+        st.session_state[k] = None
+
+# ─── 3) 구글 인증 & 시트 로드 ─────────────────────────────────────────────────
 credentials = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"],
     scopes=[
@@ -76,17 +69,17 @@ gc = gspread.authorize(credentials)
 worksheet = gc.open_by_key("1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y") \
               .worksheet("students(for API)")
 
-# ─── 5) 데이터 로딩 & 전처리 ─────────────────────────────────────────────────────
+# ─── 4) 데이터 로딩 & 전처리 ─────────────────────────────────────────────────────
 data = worksheet.get_all_values()
 df = pd.DataFrame(data[1:], columns=data[0]).rename(
     columns={'타이틀':'교재명','키워드':'에듀넷 키워드'}
 )[['교재명','카테고리','난이도','에듀넷 키워드','주요 키워드','교수 전략']]
 df['추가예시'] = ''
 
-# ─── 6) 페이지 헤더 ───────────────────────────────────────────────────────────
+# ─── 5) 페이지 헤더 ───────────────────────────────────────────────────────────
 st.markdown("<h2>📚 초등 AI 교재 인사이트</h2>", unsafe_allow_html=True)
 
-# ─── 7) 검색창 & 입력 업데이트 ─────────────────────────────────────────────────
+# ─── 6) 검색창 & 입력 업데이트 ─────────────────────────────────────────────────
 st.text_input(
     "초등학교 교재명을 검색하세요",
     key='temp_input',
@@ -94,7 +87,7 @@ st.text_input(
 )
 user_input = st.session_state.user_input
 
-# ─── 8) 추천 교재 드롭다운 ────────────────────────────────────────────────────
+# ─── 7) 추천 교재 드롭다운 ────────────────────────────────────────────────────
 title_list  = df['교재명'].dropna().tolist()
 suggestions = [t for t in title_list if user_input.lower() in t.lower()]
 
@@ -111,26 +104,25 @@ if suggestions:
 elif user_input:
     st.info("🔍 검색어에 해당하는 교재가 없습니다.")
 
-# ─── 9) 현재 선택 상태 ─────────────────────────────────────────────────────────
+# ─── 8) 현재 선택 상태 ─────────────────────────────────────────────────────────
 selected_title = st.session_state.selected_title
 selected_tag   = st.session_state.selected_tag
 
-# ─── 10) 상세 / 태그 목록 또는 홈 화면 ──────────────────────────────────────────
+# ─── 9) 상세 / 태그 목록 또는 홈 화면 ──────────────────────────────────────────
 if selected_title or selected_tag:
-    # 홈 & 뒤로가기 버튼 (우측 상단)
-    col1, col2, col3 = st.columns([7,1,1])
-    with col2:
-        if st.button("◀️ 뒤로가기", help="이전 페이지로 이동"):
-            go_back()
-    with col3:
+    # ─── 홈 & 뒤로가기 버튼 배치 ────────────────────────────────────────────────
+    c1, c2, c3 = st.columns([1,8,1])
+    with c1:
         if st.button("🏠 홈", help="메인 목록으로 돌아가기"):
             clear_selection()
+    with c3:
+        if st.button("◀️ 뒤로가기", help="이전 페이지로 이동"):
+            go_back()
 
+    # 상세 페이지
     if selected_title:
-        # 상세 페이지
         row = df[df['교재명'] == selected_title].iloc[0]
         st.markdown(f"<h3>📖 {row['교재명']}</h3>", unsafe_allow_html=True)
-
         for label, col, sep in [
             ("🗂️ 카테고리",      '카테고리',        None),
             ("🧠 난이도",        '난이도',          None),
