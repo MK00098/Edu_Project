@@ -1,15 +1,16 @@
-# Streamlit 대쉬보드
-# Google Sheets 연결 필요 (Secret keys 설정 필요)
+# Streamlit 대쉬보드 (Streamlit Cloud용 Secrets 연동 최종 수정 버전)
 
 import streamlit as st
 import pandas as pd
 import gspread
-from google.oauth2.service_account import Credentials
+from google.oauth2 import service_account
+import json
 
-# --- 설정 부분 ---
-SHEET_JSON = "D:/python-workspace/Edu-project/edu-workspace-9cd43f83c2b3.json"
-SPREADSHEET_ID = "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
-WORKSHEET_NAME = "students(for API)"
+# --- Secret 불러오기 ---
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+SHEET_JSON_CONTENT = st.secrets["SHEET_JSON"]
+SPREADSHEET_ID = st.secrets["SPREADSHEET_ID"]
+WORKSHEET_NAME = st.secrets["WORKSHEET_NAME"]
 
 # --- 구글시트 연결 ---
 scope = [
@@ -17,10 +18,12 @@ scope = [
     "https://www.googleapis.com/auth/drive",
 ]
 
-credentials = Credentials.from_service_account_file(
-    SHEET_JSON,
+# Service Account Credentials 생성
+credentials = service_account.Credentials.from_service_account_info(
+    json.loads(SHEET_JSON_CONTENT),
     scopes=scope
 )
+
 gc = gspread.authorize(credentials)
 spreadsheet = gc.open_by_key(SPREADSHEET_ID)
 worksheet = spreadsheet.worksheet(WORKSHEET_NAME)
@@ -34,24 +37,24 @@ header = df.iloc[0]
 df = df[1:].reset_index(drop=True)
 df.columns = header
 
-# 필요한 컬럼만 추출 (※ 수정 완료)
+# 필요한 컬럼만 추출
 columns_to_keep = [
     '타이틀', 
     '카테고리', 
     '난이도', 
     '키워드', 
-    '주요 키워드',    # 여기 수정
+    '주요 키워드',    
     '교수 전략'
 ]
 df = df[columns_to_keep]
 
-# 컬럼명 매핑 (※ 수정 완료)
+# 컬럼명 매핑
 df = df.rename(columns={
     '타이틀': '교재명',
     '카테고리': '카테고리',
     '난이도': '난이도',
-    '키워드': '일반 키워드',
-    '주요 키워드': '산업연계 키워드',    # 여기 수정
+    '키워드': '에듀넷 키워드',   # 🔥 여기 변경
+    '주요 키워드': '주요 키워드',
     '교수 전략': '교수 전략'
 })
 
@@ -68,7 +71,7 @@ if 'user_input' not in st.session_state:
 def update_input():
     st.session_state['user_input'] = st.session_state['temp_input']
 
-# 입력창 (글자 입력하면 바로 반응)
+# 입력창
 st.text_input(
     "초등학교 교재명을 검색하세요",
     key='temp_input',
@@ -85,7 +88,6 @@ if user_input:
     # 추천 검색어 리스트
     suggestions = [title for title in title_list if user_input.lower() in title.lower()]
     
-    # 검색창 바로 아래 추천 리스트 띄우기
     for suggestion in suggestions:
         if st.button(suggestion):
             selected_title = suggestion
@@ -108,11 +110,11 @@ if not results.empty:
         st.subheader("🧠 난이도")
         st.success(row.get('난이도', ''))
 
-        st.subheader("📝 일반 키워드")
-        st.write(row.get('일반 키워드', ''))
+        st.subheader("📚 에듀넷 키워드")  # 🔥 여기 변경
+        st.write(row.get('에듀넷 키워드', ''))
 
-        st.subheader("🏫 산업연계 키워드")
-        st.write(row.get('산업연계 키워드', ''))
+        st.subheader("🏫 주요 키워드")  # 🔥 여기 변경
+        st.write(row.get('주요 키워드', ''))
 
         st.subheader("💡 교수 전략")
         st.info(row.get('교수 전략', ''))
