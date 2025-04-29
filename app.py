@@ -128,7 +128,7 @@ selected_tag   = st.session_state.selected_tag
 # ─── 10) 상세 / 태그 목록 또는 홈 화면 ──────────────────────────────────────────
 if selected_title or selected_tag:
     # 홈 & 뒤로가기 버튼 (한 줄, 양 끝)
-    col_home, col_spacer, col_back = st.columns([2, 15, 4])
+    col_home, col_spacer, col_back = st.columns([3, 15, 4])
     with col_home:
         if st.button("🏠 홈", help="메인 목록으로 돌아가기"):
             clear_selection()
