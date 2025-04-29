@@ -70,8 +70,9 @@ credentials = service_account.Credentials.from_service_account_info(
     ],
 )
 gc = gspread.authorize(credentials)
-worksheet = gc.open_by_key("1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y") \
-              .worksheet("students(for API)")
+worksheet = gc.open_by_key(
+    "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
+).worksheet("students(for API)")
 
 # ─── 5) 데이터 로딩 & 전처리 ─────────────────────────────────────────────────────
 data = worksheet.get_all_values()
@@ -114,24 +115,34 @@ selected_tag   = st.session_state.selected_tag
 
 # ─── 10) 상세 / 태그 목록 또는 홈 화면 ──────────────────────────────────────────
 if selected_title or selected_tag:
-    # 홈 & 뒤로가기 버튼을 한 줄에, 양 끝으로 배치
-    col_home, col_spacer, col_back = st.columns([1,20,1])
+    # 홈 & 뒤로가기 버튼 (한 줄, 양 끝)
+    col_home, _, col_back = st.columns([1, 20, 1])
     with col_home:
-        if st.button("🏠 홈", help="메인 목록으로 돌아가기"):
+        if st.button("🏠홈", help="메인 목록으로 돌아가기"):
             clear_selection()
     with col_back:
-        if st.button("◀️ 뒤로가기", help="이전 페이지로 이동"):
+        if st.button("◀️뒤로", help="이전 페이지로 이동"):
             go_back()
 
-    # 상세 페이지
     if selected_title:
+        # 상세 페이지
         row = df[df['교재명'] == selected_title].iloc[0]
         idx = df.index[df['교재명'] == selected_title][0]
 
         st.markdown(f"<h3>📖 {row['교재명']}</h3>", unsafe_allow_html=True)
 
-        # 카테고리 · 난이도 · 에듀넷 키워드를 한 줄에 버튼으로
-        col_cat, col_diff, col_edu = st.columns([2,2,4])
+        # — 라벨 2줄 구조 — 
+        # 1행: 카테고리 · 난이도 · 에듀넷 키워드 라벨
+        lbl1, lbl2, lbl3 = st.columns([2, 2, 4])
+        with lbl1:
+            st.markdown("<h4>🗂️ 카테고리</h4>", unsafe_allow_html=True)
+        with lbl2:
+            st.markdown("<h4>🧠 난이도</h4>", unsafe_allow_html=True)
+        with lbl3:
+            st.markdown("<h4>📚 에듀넷 키워드</h4>", unsafe_allow_html=True)
+
+        # 2행: 실제 버튼
+        col_cat, col_diff, col_edu = st.columns([2, 2, 4])
         with col_cat:
             if st.button(row['카테고리'], key=f"cat_{idx}", help="카테고리로 필터"):
                 select_tag(row['카테고리'])
@@ -143,7 +154,7 @@ if selected_title or selected_tag:
             if st.button(edu, key=f"edu_{idx}", help="에듀넷 키워드로 필터"):
                 select_tag(edu)
 
-        # 주요 키워드를 한 줄 텍스트로
+        # 주요 키워드를 한 줄로
         major = row['주요 키워드']
         st.markdown(f"🏫 주요 키워드: {major}")
 
