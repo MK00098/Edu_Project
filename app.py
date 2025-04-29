@@ -70,8 +70,9 @@ credentials = service_account.Credentials.from_service_account_info(
     ],
 )
 gc = gspread.authorize(credentials)
-worksheet = gc.open_by_key("1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y") \
-              .worksheet("students(for API)")
+worksheet = gc.open_by_key(
+    "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
+).worksheet("students(for API)")
 
 # ─── 5) 데이터 로딩 & 전처리 ─────────────────────────────────────────────────────
 data = worksheet.get_all_values()
@@ -115,12 +116,13 @@ selected_tag   = st.session_state.selected_tag
 # ─── 10) 상세 / 태그 목록 또는 홈 화면 ──────────────────────────────────────────
 if selected_title or selected_tag:
     # ─── 홈 & 뒤로가기 버튼 (한 줄, 양 끝) ─────────────────────────────────
-    # spacer를 크게 늘려 뒤로가기 버튼이 검색창 우측면과 수직 정렬되도록
-    col_home, col_spacer, col_back = st.columns([1,18,1])
+    # spacer를 크게 늘려 뒤로가기 버튼 우측이 검색창 우측과 정렬되도록 조정
+    col_home, col_spacer, col_back = st.columns([1, 18, 2])
     with col_home:
         if st.button("🏠 홈", help="메인 목록으로 돌아가기"):
             clear_selection()
     with col_back:
+        # 한 줄로 '◀️ 뒤로가기' 라벨
         if st.button("◀️ 뒤로가기", help="이전 페이지로 이동"):
             go_back()
 
