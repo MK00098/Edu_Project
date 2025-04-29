@@ -1,5 +1,3 @@
-# Streamlit 대쉬보드
-
 import streamlit as st
 import pandas as pd
 import gspread
@@ -72,39 +70,37 @@ credentials = service_account.Credentials.from_service_account_info(
     ],
 )
 gc = gspread.authorize(credentials)
-worksheet = gc.open_by_key(
-    "1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y"
-).worksheet("students(for API)")
+worksheet = gc.open_by_key("1flo64cRwCCpI5B9dS3C2_4AdcI1alMZeD7D8GQKz32Y") \
+              .worksheet("students(for API)")
 
 # ─── 5) 데이터 로딩 & 전처리 ─────────────────────────────────────────────────────
 data = worksheet.get_all_values()
 df = pd.DataFrame(data[1:], columns=data[0]).rename(
     columns={'타이틀':'교재명','키워드':'에듀넷 키워드'}
 )[['교재명','카테고리','난이도','에듀넷 키워드','주요 키워드','교수 전략']]
-df['추가예시'] = ''
 
 # ─── 6) 페이지 헤더 ───────────────────────────────────────────────────────────
 st.markdown("<h2>📚 초등 AI/SW 교재 길라잡이</h2>", unsafe_allow_html=True)
 
 # ─── 7) 검색창 & 입력 업데이트 ─────────────────────────────────────────────────
 st.text_input(
-    "step 1: 교재명을 입력하고 enter를 눌러주세요",
+    "step 1: 교재명을 입력하고 Enter를 눌러주세요",
     key='temp_input',
     on_change=update_input
 )
 user_input = st.session_state.user_input
 
 # ─── 8) 추천 교재 드롭다운 ────────────────────────────────────────────────────
-title_list  = df['교재명'].dropna().tolist()
-suggestions = [t for t in title_list if user_input.lower() in t.lower()]
+titles = df['교재명'].dropna().tolist()
+sugs   = [t for t in titles if user_input.lower() in t.lower()]
 
-if suggestions:
-    options = ["── 선택 없음 ──"] + suggestions
-    if st.session_state.select_title not in options:
-        st.session_state.select_title = options[0]
+if sugs:
+    opts = ["── 선택 없음 ──"] + sugs
+    if st.session_state.select_title not in opts:
+        st.session_state.select_title = opts[0]
     st.selectbox(
         "step 2: 교재를 선택하세요",
-        options,
+        opts,
         key='select_title',
         on_change=update_select
     )
@@ -112,79 +108,87 @@ elif user_input:
     st.info("🔍 검색어에 해당하는 교재가 없습니다.")
 
 # ─── 9) 현재 선택 상태 ─────────────────────────────────────────────────────────
-selected_title = st.session_state.selected_title
-selected_tag   = st.session_state.selected_tag
+sel_title = st.session_state.selected_title
+sel_tag   = st.session_state.selected_tag
 
-# ─── 10) 상세 / 태그 목록 또는 홈 화면 ──────────────────────────────────────────
-if selected_title or selected_tag:
-    # ─── 홈 & 뒤로가기 버튼 (한 줄, 양 끝) ─────────────────────────────────
-    # spacer를 크게 늘려 뒤로가기 버튼 우측이 검색창 우측과 정렬되도록 조정
-    col_home, col_spacer, col_back = st.columns([1, 18, 2])
-    with col_home:
-        if st.button("🏠 홈", help="메인 목록으로 돌아가기"):
+# ─── 10) 상세 / 태그 목록 또는 메인 목록 ────────────────────────────────────────
+if sel_title or sel_tag:
+    # 홈 & 뒤로가기 버튼 (한 줄, 양 끝)
+    c1, _, c2 = st.columns([1, 18, 2])
+    with c1:
+        if st.button("🏠 홈"):
             clear_selection()
-    with col_back:
-        # 한 줄로 '◀️ 뒤로가기' 라벨
-        if st.button("◀️ 뒤로가기", help="이전 페이지로 이동"):
+    with c2:
+        if st.button("◀️ 뒤로가기"):
             go_back()
 
-    if selected_title:
+    if sel_title:
         # 상세 페이지
-        row = df[df['교재명'] == selected_title].iloc[0]
+        row = df[df['교재명'] == sel_title].iloc[0]
+        idx = df.index[df['교재명'] == sel_title][0]
         st.markdown(f"<h3>📖 {row['교재명']}</h3>", unsafe_allow_html=True)
-        for label, col, sep in [
-            ("🗂️ 카테고리",      '카테고리',        None),
-            ("🧠 난이도",        '난이도',          None),
-            ("📚 에듀넷 키워드",'에듀넷 키워드',  '/'),
-            ("🏫 주요 키워드",    '주요 키워드',    '/'),
-        ]:
-            st.markdown(f"<h4>{label}</h4>", unsafe_allow_html=True)
-            items = [row[col]] if sep is None else str(row[col]).split(sep)
-            for it in items:
-                it = it.strip()
-                if it:
-                    st.button(it, key=f"tag_{col}_{it}", on_click=select_tag, args=(it,))
 
-        st.markdown("<h4>💡 교수 전략</h4>", unsafe_allow_html=True)
-        st.info(row['교수 전략'])
-        st.markdown("<h4>🧩 추가 예시</h4>", unsafe_allow_html=True)
-        st.write(row['추가예시'])
+        # 카테고리 · 난이도 · 에듀넷 키워드 (2줄)
+        # 1행: 라벨
+        lc, ld, le = st.columns([1,1,1])
+        with lc: st.markdown("🗂️ **카테고리**", unsafe_allow_html=True)
+        with ld: st.markdown("🧠 **난이도**", unsafe_allow_html=True)
+        with le: st.markdown("📚 **에듀넷 키워드**", unsafe_allow_html=True)
+        # 2행: 버튼
+        bc, bd, be = st.columns([1,1,1])
+        with bc:
+            if st.button(row['카테고리'], key=f"cat_{idx}"):
+                select_tag(row['카테고리'])
+        with bd:
+            if st.button(row['난이도'], key=f"diff_{idx}"):
+                select_tag(row['난이도'])
+        with be:
+            if st.button(row['에듀넷 키워드'], key=f"edu_{idx}"):
+                select_tag(row['에듀넷 키워드'])
+
+        # 주요 키워드 2행 배치 (2개 + 3개)
+        st.markdown("🏫 **주요 키워드**", unsafe_allow_html=True)
+        kws = str(row['주요 키워드']).split('/')
+        # 첫 줄 2개
+        r1c1, r1c2 = st.columns([1,1])
+        with r1c1: st.button(kws[0].strip(), key=f"maj_{idx}_0")
+        with r1c2: st.button(kws[1].strip(), key=f"maj_{idx}_1")
+        # 두 번째 줄 3개
+        r2c1, r2c2, r2c3 = st.columns([1,1,1])
+        with r2c1: st.button(kws[2].strip(), key=f"maj_{idx}_2")
+        with r2c2: st.button(kws[3].strip(), key=f"maj_{idx}_3")
+        with r2c3: st.button(kws[4].strip(), key=f"maj_{idx}_4")
+
+        # 교수 전략: 회색 배경 박스
+        st.markdown(
+            f"<div style='background-color:#f5f5f5; padding:12px; border-radius:6px;'>"
+            f"{row['교수 전략']}"
+            "</div>",
+            unsafe_allow_html=True
+        )
 
     else:
         # 태그 기반 목록 페이지
         st.markdown("---")
-        st.markdown(f"### 🔎 '{selected_tag}' 관련 교재 목록")
+        st.markdown(f"### 🔎 '{sel_tag}' 관련 교재 목록")
         mask = (
-            (df['카테고리'] == selected_tag) |
-            (df['난이도']   == selected_tag) |
-            (df['에듀넷 키워드'].str.contains(selected_tag, na=False)) |
-            (df['주요 키워드'].str.contains(selected_tag, na=False))
+            (df['카테고리'] == sel_tag) |
+            (df['난이도']   == sel_tag) |
+            (df['에듀넷 키워드'].str.contains(sel_tag, na=False)) |
+            (df['주요 키워드'].str.contains(sel_tag, na=False))
         )
-        for title in df[mask]['교재명'].dropna():
-            st.button(
-                title,
-                key=f"list_{title}",
-                on_click=select_title_callback,
-                args=(title,)
-            )
+        for t in df[mask]['교재명'].dropna():
+            st.button(t, key=f"list_{t}", on_click=select_title_callback, args=(t,))
 
 else:
-    # 홈 / 검색 결과 목록
-    results = (
-        df[df['교재명'].str.contains(user_input, case=False, na=False)]
-        if user_input else df.copy()
-    )
+    # 메인 / 검색 결과 목록
+    results = df[df['교재명'].str.contains(user_input, case=False, na=False)] if user_input else df.copy()
     if results.empty:
         st.info("🔍 검색 결과가 없습니다.")
     else:
         for idx, row in results.iterrows():
             st.markdown("---")
-            st.button(
-                f"📖 {row['교재명']}",
-                key=f"home_{idx}",
-                on_click=select_title_callback,
-                args=(row['교재명'],)
-            )
+            st.button(f"📖 {row['교재명']}", key=f"home_{idx}", on_click=select_title_callback, args=(row['교재명'],))
             st.caption(f"🗂️ {row['카테고리']}   🧠 {row['난이도']}")
             st.write(f"📚 {row['에듀넷 키워드']}")
             st.write(f"🏫 {row['주요 키워드']}")
