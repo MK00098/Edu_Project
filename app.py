@@ -85,7 +85,7 @@ st.markdown("<h2>📚 초등 AI 교재 인사이트</h2>", unsafe_allow_html=Tru
 
 # ─── 7) 검색창 & 입력 업데이트 ─────────────────────────────────────────────────
 st.text_input(
-    "step 1: 검색어를 입력하고 enter를 눌러주세요",
+    "step 1: 검색어를 입력하고 Enter를 눌러주세요",
     key='temp_input',
     on_change=update_input
 )
@@ -114,8 +114,8 @@ selected_tag   = st.session_state.selected_tag
 
 # ─── 10) 상세 / 태그 목록 또는 홈 화면 ──────────────────────────────────────────
 if selected_title or selected_tag:
-    # ─── 홈 & 뒤로가기 버튼 (한 줄, 양 끝) ─────────────────────────────────
-    col_home, col_spacer, col_back = st.columns([4,2,4])
+    # 홈 & 뒤로가기 버튼을 한 줄에, 양 끝으로 배치
+    col_home, col_spacer, col_back = st.columns([1,20,1])
     with col_home:
         if st.button("🏠 홈", help="메인 목록으로 돌아가기"):
             clear_selection()
@@ -123,23 +123,31 @@ if selected_title or selected_tag:
         if st.button("◀️ 뒤로가기", help="이전 페이지로 이동"):
             go_back()
 
+    # 상세 페이지
     if selected_title:
-        # 상세 페이지
         row = df[df['교재명'] == selected_title].iloc[0]
-        st.markdown(f"<h3>📖 {row['교재명']}</h3>", unsafe_allow_html=True)
-        for label, col, sep in [
-            ("🗂️ 카테고리",      '카테고리',        None),
-            ("🧠 난이도",        '난이도',          None),
-            ("📚 에듀넷 키워드",'에듀넷 키워드',  '/'),
-            ("🏫 주요 키워드",    '주요 키워드',    '/'),
-        ]:
-            st.markdown(f"<h4>{label}</h4>", unsafe_allow_html=True)
-            items = [row[col]] if sep is None else str(row[col]).split(sep)
-            for it in items:
-                it = it.strip()
-                if it:
-                    st.button(it, key=f"tag_{col}_{it}", on_click=select_tag, args=(it,))
+        idx = df.index[df['교재명'] == selected_title][0]
 
+        st.markdown(f"<h3>📖 {row['교재명']}</h3>", unsafe_allow_html=True)
+
+        # 카테고리 · 난이도 · 에듀넷 키워드를 한 줄에 버튼으로
+        col_cat, col_diff, col_edu = st.columns([2,2,4])
+        with col_cat:
+            if st.button(row['카테고리'], key=f"cat_{idx}", help="카테고리로 필터"):
+                select_tag(row['카테고리'])
+        with col_diff:
+            if st.button(row['난이도'], key=f"diff_{idx}", help="난이도로 필터"):
+                select_tag(row['난이도'])
+        with col_edu:
+            edu = row['에듀넷 키워드']
+            if st.button(edu, key=f"edu_{idx}", help="에듀넷 키워드로 필터"):
+                select_tag(edu)
+
+        # 주요 키워드를 한 줄 텍스트로
+        major = row['주요 키워드']
+        st.markdown(f"🏫 주요 키워드: {major}")
+
+        # 교수 전략 & 추가 예시
         st.markdown("<h4>💡 교수 전략</h4>", unsafe_allow_html=True)
         st.info(row['교수 전략'])
         st.markdown("<h4>🧩 추가 예시</h4>", unsafe_allow_html=True)
