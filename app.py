@@ -40,8 +40,8 @@ def clear_selection():
 
 # ─── 3) 콜백 정의 ─────────────────────────────────────────────────────────────
 def update_input():
-    st.session_state.user_input     = st.session_state.temp_input
-    st.session_state.select_title   = ''
+    st.session_state.user_input   = st.session_state.temp_input
+    st.session_state.select_title = ''
     clear_selection()
 
 def update_select():
@@ -85,7 +85,7 @@ st.markdown("<h2>📚 초등 AI 교재 인사이트</h2>", unsafe_allow_html=Tru
 
 # ─── 7) 검색창 & 입력 업데이트 ─────────────────────────────────────────────────
 st.text_input(
-    "초등학교 교재명을 검색하세요",
+    "step 1: 검색어를 입력하고 enter를 눌러주세요",
     key='temp_input',
     on_change=update_input
 )
@@ -100,7 +100,7 @@ if suggestions:
     if st.session_state.select_title not in options:
         st.session_state.select_title = options[0]
     st.selectbox(
-        "추천 교재를 선택하세요",
+        "step 2: 교재를 선택하세요",
         options,
         key='select_title',
         on_change=update_select
@@ -115,7 +115,7 @@ selected_tag   = st.session_state.selected_tag
 # ─── 10) 상세 / 태그 목록 또는 홈 화면 ──────────────────────────────────────────
 if selected_title or selected_tag:
     # ─── 홈 & 뒤로가기 버튼 (한 줄, 양 끝) ─────────────────────────────────
-    col_home, col_spacer, col_back = st.columns([1, 8, 1])
+    col_home, col_spacer, col_back = st.columns([4,2,4])
     with col_home:
         if st.button("🏠 홈", help="메인 목록으로 돌아가기"):
             clear_selection()
