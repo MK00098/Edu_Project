@@ -1,5 +1,3 @@
-# Streamlit 대쉬보드
-
 import streamlit as st
 import pandas as pd
 import gspread
@@ -79,19 +77,8 @@ worksheet = gc.open_by_key(
 # ─── 5) 데이터 로딩 & 전처리 ─────────────────────────────────────────────────────
 data = worksheet.get_all_values()
 df = pd.DataFrame(data[1:], columns=data[0]).rename(
-    columns={
-        '타이틀': '교재명',
-        '키워드': '에듀넷 키워드'
-    }
-)[[
-    '교재명',
-    '카테고리',
-    '난이도',
-    '추천 학년',
-    '에듀넷 키워드',
-    '주요 키워드',
-    '교수 전략'
-]]
+    columns={'타이틀':'교재명','키워드':'에듀넷 키워드'}
+)[['교재명','카테고리','난이도','추천 학년','에듀넷 키워드','주요 키워드','교수 전략']]
 
 # ─── 6) 페이지 헤더 ───────────────────────────────────────────────────────────
 st.markdown("<h2>📚 초등 AI/SW 교재 길라잡이</h2>", unsafe_allow_html=True)
@@ -105,16 +92,16 @@ st.text_input(
 user_input = st.session_state.user_input
 
 # ─── 8) 추천 교재 드롭다운 ────────────────────────────────────────────────────
-title_list  = df['교재명'].dropna().tolist()
-suggestions = [t for t in title_list if user_input.lower() in t.lower()]
+titles     = df['교재명'].dropna().tolist()
+suggestions = [t for t in titles if user_input.lower() in t.lower()]
 
 if suggestions:
-    options = ["── 선택 없음 ──"] + suggestions
-    if st.session_state.select_title not in options:
-        st.session_state.select_title = options[0]
+    opts = ["── 선택 없음 ──"] + suggestions
+    if st.session_state.select_title not in opts:
+        st.session_state.select_title = opts[0]
     st.selectbox(
         "step 2: 교재를 선택하세요",
-        options,
+        opts,
         key='select_title',
         on_change=update_select
     )
@@ -127,8 +114,8 @@ selected_tag   = st.session_state.selected_tag
 
 # ─── 10) 상세 / 태그 목록 또는 홈 화면 ──────────────────────────────────────────
 if selected_title or selected_tag:
-    # 홈 & 뒤로가기 버튼 (한 줄, 양 끝)
-    col_home, col_spacer, col_back = st.columns([3, 15, 4])
+    # 홈 & 뒤로가기 버튼 배치
+    col_home, _, col_back = st.columns([3, 15, 4])
     with col_home:
         if st.button("🏠 홈", help="메인 목록으로 돌아가기"):
             clear_selection()
@@ -143,7 +130,7 @@ if selected_title or selected_tag:
 
         st.markdown(f"<h3>📖 {row['교재명']}</h3>", unsafe_allow_html=True)
 
-        # ── 카테고리 · 난이도 · 추천 학년 · 에듀넷 키워드 · 주요 키워드 ──────────
+        # 카테고리 · 난이도 · 추천 학년 · 에듀넷 키워드 · 주요 키워드
         for label, col_name, sep in [
             ("🗂️ 카테고리",      '카테고리',     None),
             ("🧠 난이도",        '난이도',       None),
@@ -158,10 +145,10 @@ if selected_title or selected_tag:
                 if it:
                     st.button(it, key=f"{col_name}_{idx}_{it}", on_click=select_tag, args=(it,))
 
-            # ─── ‘난이도’ 바로 아래 참고 설명 추가 ─────────────────
-            if col_name == '난이도':
+            # ‘추천 학년’ 바로 아래에 참고 설명 추가
+            if col_name == '추천 학년':
                 st.markdown(
-                    "📘 **참고**: 본 난이도는 『AI·SW 창체 운영 가이드 (KERIS, 2023)』 기준에 따라 분류됨  \n"
+                    ":blue_book: 본 난이도는 『AI·SW 창체 운영 가이드 (KERIS, 2023)』 기준에 따라 분류됨  \n"
                     "- 초급: 개념 이해 중심  \n"
                     "- 초중급: 블록코딩 가능  \n"
                     "- 중급 이상: 알고리즘·모델 응용",
@@ -170,7 +157,7 @@ if selected_title or selected_tag:
 
         # 교수 전략
         st.markdown("<h4>💡 교수 전략</h4>", unsafe_allow_html=True)
-        st.write(row['교수 전략'])  # 기본 배경으로 출력
+        st.write(row['교수 전략'])
 
     else:
         # 태그 기반 목록 페이지
@@ -183,13 +170,8 @@ if selected_title or selected_tag:
             (df['에듀넷 키워드'].str.contains(selected_tag, na=False)) |
             (df['주요 키워드'].str.contains(selected_tag, na=False))
         )
-        for title in df[mask]['교재명'].dropna():
-            st.button(
-                title,
-                key=f"list_{title}",
-                on_click=select_title_callback,
-                args=(title,)
-            )
+        for t in df[mask]['교재명'].dropna():
+            st.button(t, key=f"list_{t}", on_click=select_title_callback, args=(t,))
 
 else:
     # 홈 / 검색 결과 목록
@@ -203,7 +185,7 @@ else:
         for idx, row in results.iterrows():
             st.markdown("---")
             st.button(
-                f"📖  {row['교재명']}",
+                f"📖 {row['교재명']}",
                 key=f"home_{idx}",
                 on_click=select_title_callback,
                 args=(row['교재명'],)
