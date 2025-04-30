@@ -148,10 +148,8 @@ if selected_title or selected_tag:
             # ‘추천 학년’ 바로 아래에 참고 설명 추가
             if col_name == '추천 학년':
                 st.markdown(
-                    ":blue_book: 본 난이도는 『AI·SW 창체 운영 가이드 (KERIS, 2023)』 기준에 따라 분류됨  \n"
-                    "- 초급: 개념 이해 중심  \n"
-                    "- 초중급: 블록코딩 가능  \n"
-                    "- 중급 이상: 알고리즘·모델 응용",
+                    ":blue_book: 본 난이도와 추천학년은『AI·SW 창체 운영 가이드 (KERIS, 2023)』 기준에 따라 분류됨  \n"
+                    ,
                     unsafe_allow_html=True
                 )
 
